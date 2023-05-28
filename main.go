@@ -97,9 +97,20 @@ func main() {
 			}
 		}
 
-		_, err := p.Bold(bold).Size(uint8(fontSize), uint8(fontSize)).Write(string(message.Payload()))
-		if err != nil {
-			log.Fatalf("failed calling escpos.Write: %v", err)
+		s := string(message.Payload())
+		for i, line := range strings.Split(s, "\n") {
+			// only feed if there is more than one line
+			if i != 0 {
+				_, err := p.LineFeed()
+				if err != nil {
+					log.Fatalf("failed calling escpos.LineFeed: %v", err)
+				}
+			}
+
+			_, err := p.Bold(bold).Size(uint8(fontSize), uint8(fontSize)).Write(line)
+			if err != nil {
+				log.Fatalf("failed calling escpos.Write: %v", err)
+			}
 		}
 
 		for i := 0; i < lineFeedsAfter; i++ {
