@@ -52,7 +52,7 @@ Valid commands are:
 `BARCODE` has the following arguments:
 - type UPCA, UPCE, EAN13, EAN8
 - x-size 2-6
-- y-size 2-6
+- y-size default is 162
 
 `QRCODE` has the following arguments:
 - model 1, 2
