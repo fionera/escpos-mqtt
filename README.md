@@ -25,3 +25,42 @@ Usage of escpos-mqtt:
   -topic-qos int
         quality of service. It must be 0 (at most once), 1 (at least once) or 2 (exactly one) (default 1)
 ```
+
+## Templates
+
+escpos-mqtt allows using formatting strings inside the message. 
+If a setting (e.g. the font-size) is overriden inside a template, 
+the default won't kick back in inside the same message.
+
+Formatting can be prevented by adding a backslash before a formatting sequence.
+
+A formatting sequence is build like this:
+```
+[CONTENT](COMMAND,...ARGUMENTS)
+```
+
+Valid commands are:
+- BOLD
+- REVERSE
+- FONTSIZE
+- BARCODE
+- QRCODE
+- CUT
+
+`CONTENT` is optional and only supported for `BARCODE` and `QRCODE` types.
+`BOLD` and`REVERSE` are booleans and can be used like that.
+`BARCODE` has the following arguments:
+- type UPCA, UPCE, EAN13, EAN8
+- x-size 2-6
+- y-size 2-6
+
+`QRCODE` has the following arguments:
+- model 1, 2
+- size 1-16
+- correction 48-51
+
+```
+[](FONTSIZE,5)Big[](BOLD)Bold[](BOLD)[](REVERSE)Reversed Colors[](REVERSE)Text
+[CONTENT](BARCODE,UPCA,2,2)
+[CONTENT](QRCODE,2,2)
+```

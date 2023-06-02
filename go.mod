@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.2
+	github.com/google/go-cmp v0.5.9
 	github.com/hennedo/escpos v0.0.2-0.20221114190247-475ba147a030
 )
 

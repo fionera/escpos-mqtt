@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/hennedo/escpos"
 	"io"
 	"log"
 	"net"
@@ -9,9 +11,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-
-	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/hennedo/escpos"
 )
 
 var (
@@ -23,7 +22,6 @@ var (
 	topicQOS        int
 	cutAfterPrint   bool
 	fontSize        int
-	bold            bool
 	lineFeedsBefore int
 	lineFeedsAfter  int
 )
@@ -37,7 +35,6 @@ func init() {
 	flag.IntVar(&topicQOS, "topic-qos", 1, "quality of service. It must be 0 (at most once), 1 (at least once) or 2 (exactly one)")
 	flag.BoolVar(&cutAfterPrint, "cut-after-print", false, "should the paper be cut after a message")
 	flag.IntVar(&fontSize, "font-size", 1, "font size between 0 and 5")
-	flag.BoolVar(&bold, "bold", false, "should the message be printed bold")
 	flag.IntVar(&lineFeedsBefore, "line-feeds-before", 1, "how many lines should be feeded before a message")
 	flag.IntVar(&lineFeedsAfter, "line-feeds-after", 1, "how many lines should be feeded after a message")
 }
@@ -72,6 +69,14 @@ func main() {
 	defer socket.Close()
 
 	p := escpos.New(socket)
+	if _, err := p.Initialize(); err != nil {
+		log.Fatal(err)
+	}
+
+	// flush the reset
+	if err := p.Print(); err != nil {
+		return
+	}
 
 	switch strings.ToUpper(config) {
 	case "TMT20II":
@@ -90,6 +95,12 @@ func main() {
 	}
 
 	messagePubHandler := func(client mqtt.Client, message mqtt.Message) {
+		template, err := ParseTemplate(string(message.Payload()))
+		if err != nil {
+			log.Printf("failed parsing template: %v", err)
+			return
+		}
+
 		for i := 0; i < lineFeedsBefore; i++ {
 			_, err := p.LineFeed()
 			if err != nil {
@@ -97,20 +108,9 @@ func main() {
 			}
 		}
 
-		s := string(message.Payload())
-		for i, line := range strings.Split(s, "\n") {
-			// only feed if there is more than one line
-			if i != 0 {
-				_, err := p.LineFeed()
-				if err != nil {
-					log.Fatalf("failed calling escpos.LineFeed: %v", err)
-				}
-			}
-
-			_, err := p.Bold(bold).Size(uint8(fontSize), uint8(fontSize)).Write(line)
-			if err != nil {
-				log.Fatalf("failed calling escpos.Write: %v", err)
-			}
+		p.Size(uint8(fontSize), uint8(fontSize))
+		if err := template.Execute(p); err != nil {
+			log.Fatalf("failed executing template: %v", err)
 		}
 
 		for i := 0; i < lineFeedsAfter; i++ {
